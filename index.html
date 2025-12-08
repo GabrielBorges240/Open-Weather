@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clima Agora PRO 2.0</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --sky-aqua: #07c8f9ff;
+      --fresh-sky: #09a6f3ff;
+      --royal-blue: #0c63e7ff;
+      --bright-indigo: #0d41e1ff;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      overflow-y: auto;
+      background: linear-gradient(-45deg, var(--sky-aqua), var(--fresh-sky), var(--royal-blue), var(--bright-indigo));
+      background-size: 400% 400%;
+      animation: gradientMove 15s ease infinite;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      color: white;
+      position: relative;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+      width: 90%;
+      max-width: 420px;
+      margin: 2rem 0;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 1rem;
+        width: 95%;
+        max-width: 340px;
+      }
+      h1 { font-size: 1.4rem; }
+      .wi { font-size: 1.8rem; }
+      .info { font-size: 1rem; }
+    }
+
+    .info {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 1rem;
+      font-size: 1.1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .wi {
+      display: block;
+      font-size: 2.2rem;
+      margin-bottom: 0.3rem;
+      text-shadow: 0 0 15px rgba(255,255,255,0.8);
+      transition: transform 0.5s ease, text-shadow 0.5s ease;
+    }
+
+    .wi:hover {
+      transform: scale(1.15);
+      text-shadow: 0 0 25px rgba(255,255,255,0.9);
+    }
+
+    button {
+      margin-top: 1rem;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      background: linear-gradient(90deg, var(--royal-blue), var(--bright-indigo));
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+      transition: 0.3s;
+      animation: pulseGlow 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+      50% { box-shadow: 0 0 40px rgba(255,255,255,0.7); }
+    }
+
+    input {
+      padding: 0.6rem;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      margin-top: 0.8rem;
+      text-align: center;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      width: 85%;
+    }
+
+    input::placeholder { color: white; }
+
+    footer {
+      margin-top: -0.5rem;
+      text-align: center;
+      font-size: 0.9rem;
+      opacity: 0.85;
+      color: #fff;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    #bandeira {
+      display: block;
+      margin: 10px auto 0 auto;
+      width: 65px;
+      height: 45px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>Clima Agora</h1>
+
+    <!-- Bandeira centralizada -->
+    <img id="bandeira" src="" alt="Bandeira do país" style="display:none;">
+
+    <!-- Nome da cidade -->
+    <div id="cidade" style="font-size:1.5rem; margin-top:10px;">Buscando localização...</div>
+
+    <!-- Ícone do clima -->
+    <i id="icone-clima" class="wi wi-day-sunny" style="font-size:3rem; margin-top:10px;"></i>
+
+    <!-- Descrição -->
+    <div id="descricao" style="font-size:1.2rem; margin-top:5px;">--</div>
+
+    <div id="temp" style="font-size:2rem;margin:1rem 0;">--°C</div>
+
+    <div class="info">
+      <div><i class="wi wi-strong-wind"></i><span id="vento">-- km/h</span></div>
+      <div><i class="wi wi-humidity"></i><span id="umidade">--%</span></div>
+      <div><i class="wi wi-thermometer"></i><span id="sensacao">--°C</span></div>
+      <div><i class="wi wi-moon-alt-waxing-crescent-3"></i><span id="lua">Lua: --</span></div>
+      <div><i class="wi wi-sunrise"></i><span id="nascer">--:--</span></div>
+      <div><i class="wi wi-sunset"></i><span id="por">--:--</span></div>
+    </div>
+
+    <input type="text" id="busca" placeholder="Buscar cidade..." />
+    <button onclick="buscarCidade()">Buscar</button>
+    <button onclick="getWeather()">Atualizar</button>
+    <button onclick="alternarDetalhes()">Ver mais detalhes</button>
+
+    <div id="detalhes" style="display:none; margin-top:1rem;">
+      <h3>Previsão dos próximos 5 dias</h3>
+      <canvas id="graficoTemp" height="150"></canvas>
+      <canvas id="graficoUmidade" height="150"></canvas>
+    </div>
+  </div>
+
+  <footer>© Gabriel Borges. Todos os direitos reservados. • 2025</footer>
+
+  <script>
+    const apiKey = "bb0aaeea61a464239144480a4e1b6998";
+    let chartTemp, chartUmidade;
+    const ctxTemp = document.getElementById("graficoTemp").getContext("2d");
+    const ctxUmidade = document.getElementById("graficoUmidade").getContext("2d");
+
+    function alternarDetalhes() {
+      const detalhes = document.getElementById("detalhes");
+      detalhes.style.display = detalhes.style.display === "none" ? "block" : "none";
+    }
+
+    function calcularFaseLua() {
+      const hoje = new Date();
+      const lp = 2551443;
+      const now = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 20, 35, 0);
+      const new_moon = new Date(1970, 0, 7, 20, 35, 0);
+      const phase = ((now.getTime() - new_moon.getTime()) / 1000) % lp;
+      const index = Math.floor((phase / lp) * 8);
+      const fases = ["Nova", "Crescente", "Quarto Crescente", "Gibosa Crescente", "Cheia", "Gibosa Minguante", "Quarto Minguante", "Minguante"];
+      return fases[index];
+    }
+
+    async function getWeather(lat, lon) {
+      try {
+        if (!lat || !lon) {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => getWeather(pos.coords.latitude, pos.coords.longitude));
+          }
+          return;
+        }
+
+        // Dados atuais
+        const urlAtual = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${apiKey}`;
+        const resAtual = await fetch(urlAtual);
+        const data = await resAtual.json();
+        if (!resAtual.ok) throw new Error("Erro ao buscar dados climáticos.");
+
+        document.getElementById("cidade").textContent = data.name;
+        document.getElementById("descricao").textContent = data.weather[0].description;
+        document.getElementById("temp").textContent = Math.round(data.main.temp) + "°C";
+        document.getElementById("vento").textContent = Math.round(data.wind.speed) + " km/h";
+        document.getElementById("umidade").textContent = data.main.humidity + "%";
+        document.getElementById("sensacao").textContent = Math.round(data.main.feels_like) + "°C";
+        document.getElementById("lua").textContent = "Lua: " + calcularFaseLua();
+        document.getElementById("nascer").textContent = new Date(data.sys.sunrise * 1000).toLocaleTimeString("pt-BR", {hour:'2-digit',minute:'2-digit'});
+        document.getElementById("por").textContent = new Date(data.sys.sunset * 1000).toLocaleTimeString("pt-BR", {hour:'2-digit',minute:'2-digit'});
+
+        // Bandeira centralizada
+        const bandeira = document.getElementById("bandeira");
+        bandeira.src = `https://flagcdn.com/w80/${data.sys.country.toLowerCase()}.png`;
+        bandeira.style.display = "block";
+
+        // Ícone do clima
+        const tipo = data.weather[0].main;
+        const icone = document.getElementById("icone-clima");
+        icone.className = "wi";
+        switch (tipo) {
+          case "Clear": icone.classList.add("wi-day-sunny"); break;
+          case "Clouds": icone.classList.add("wi-cloudy"); break;
+          case "Rain": icone.classList.add("wi-rain"); break;
+          case "Drizzle": icone.classList.add("wi-sprinkle"); break;
+          case "Thunderstorm": icone.classList.add("wi-thunderstorm"); break;
+          case "Snow": icone.classList.add("wi-snow"); break;
+          case "Mist":
+          case "Fog":
+          case "Haze": icone.classList.add("wi-fog"); break;
+          default: icone.classList.add("wi-day-sunny");
+        }
+
+        // Previsão para os gráficos
+        const urlPrevisao = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${apiKey}`;
+        const resPrev = await fetch(urlPrevisao);
+        const prev = await resPrev.json();
+
+        const dias = [], temps = [], umids = [];
+        for (let i = 0; i < prev.list.length; i += 8) {
+          const item = prev.list[i];
+          dias.push(new Date(item.dt * 1000).toLocaleDateString("pt-BR", {weekday:"short"}));
+          temps.push(item.main.temp);
+          umids.push(item.main.humidity);
+        }
+        atualizarGraficos(dias, temps, umids);
+
+      } catch (err) {
+        alert("Erro ao buscar dados climáticos. Tente novamente.");
+      }
+    }
+
+    async function buscarCidade() {
+      const cidade = document.getElementById("busca").value.trim();
+      if (!cidade) return;
+      const urlCidade = `https://api.openweathermap.org/data/2.5/weather?q=${cidade}&appid=${apiKey}`;
+      const res = await fetch(urlCidade);
+      if (!res.ok) return alert("Cidade não encontrada.");
+      const data = await res.json();
+      getWeather(data.coord.lat, data.coord.lon);
+    }
+
+    function atualizarGraficos(dias, temps, umids) {
+      if (chartTemp) chartTemp.destroy();
+      if (chartUmidade) chartUmidade.destroy();
+
+      const white = { grid: { color: "rgba(255,255,255,0.15)" }, ticks: { color: "#fff" } };
+
+      const gradTemp = ctxTemp.createLinearGradient(0, 0, 0, 400);
+      gradTemp.addColorStop(0, "rgba(255,255,255,0.9)");
+      gradTemp.addColorStop(1, "rgba(255,255,255,0.1)");
+
+      const gradUmid = ctxUmidade.createLinearGradient(0, 0, 0, 400);
+      gradUmid.addColorStop(0, "rgba(255,255,255,0.9)");
+      gradUmid.addColorStop(1, "rgba(255,255,255,0.1)");
+
+      chartTemp = new Chart(ctxTemp, {
+        type: "line",
+        data: { labels: dias, datasets: [{ label: "Temperatura (°C)", data: temps, borderColor: "#fff", backgroundColor: gradTemp, tension: 0.35, fill: true }] },
+        options: { scales: { x: white, y: white }, plugins: { legend: { labels: { color: "#fff" } } } }
+      });
+
+      chartUmidade = new Chart(ctxUmidade, {
+        type: "line",
+        data: { labels: dias, datasets: [{ label: "Umidade (%)", data: umids, borderColor: "#fff", backgroundColor: gradUmid, tension: 0.35, fill: true }] },
+        options: { scales: { x: white, y: white }, plugins: { legend: { labels: { color: "#fff" } } } }
+      });
+    }
+
+    getWeather();
+  </script>
+</body>
+</html>
